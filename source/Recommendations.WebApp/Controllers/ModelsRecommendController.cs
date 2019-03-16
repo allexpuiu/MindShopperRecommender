@@ -50,7 +50,7 @@ namespace Recommendations.WebApp.Controllers
         /// <param name="cancellationToken">The cancellation token assigned for the operation.</param>
         /// <param name="categoryCode">Item id to get recommendations for</param>
         /// <param name="recommendationCount">The number of requested recommendations</param>
-        [Route("api/topsellers", Name = "GetItemRecommendationsFromDefaultModel")]
+        [Route("api/topsellers", Name = "GetTopSellers")]
         [HttpGet]
         [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
         public Task<IHttpActionResult> GetTopSellers(CancellationToken cancellationToken,
