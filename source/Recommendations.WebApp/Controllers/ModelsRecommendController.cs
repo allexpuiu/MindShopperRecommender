@@ -232,7 +232,7 @@ namespace Recommendations.WebApp.Controllers
                 {
                     connection.Open();
                     StringBuilder sb = new StringBuilder();
-                    sb.Append("SELECT ItemId, ItemName, CategoryCode, Category, SalesValue, ItemRank ");
+                    sb.Append("SELECT TOP 10 ItemId, ItemName, CategoryCode, Category, SalesValue, ItemRank ");
                     sb.Append("FROM [dim].[Item]");
                     sb.Append($"WHERE ItemId = {itemId}");
                     sb.Append("ORDER BY ItemRank ASC");
