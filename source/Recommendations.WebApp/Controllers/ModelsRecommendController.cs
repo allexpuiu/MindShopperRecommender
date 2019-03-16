@@ -259,7 +259,7 @@ namespace Recommendations.WebApp.Controllers
         }
 
 
-        private Item RetrieveTopSellersByCategoryCode(string categoryCode)
+        private IList<Item> RetrieveTopSellersByCategoryCode(string categoryCode)
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
 
@@ -267,7 +267,7 @@ namespace Recommendations.WebApp.Controllers
             builder.UserID = "mindshopper";
             builder.Password = "8799LipYAA9oksRLG6ia";
             builder.InitialCatalog = "recommender";
-            Item item = null; ;
+            IList<Item> items = new List<Item>();
 
 
             try
@@ -287,7 +287,7 @@ namespace Recommendations.WebApp.Controllers
                         {
                             while (reader.Read())
                             {
-                                item = new Item(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetDecimal(4), reader.GetInt32(5));
+                                items.Add(new Item(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetDecimal(4), reader.GetInt32(5)));
                             }
                         }
                     }
@@ -298,7 +298,7 @@ namespace Recommendations.WebApp.Controllers
                 Console.WriteLine(e.ToString());
             }
 
-            return item;
+            return items;
         }
 
         private const int MinRecommendationCount = 1;
