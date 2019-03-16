@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -168,7 +170,11 @@ namespace Recommendations.WebApp.Controllers
                 Trace.TraceVerbose($"Got {recommendations.Count} recommendations for model '{modelId}'");
                 
                 // convert the result and return
-                return Ok(recommendations.Select(r => new RecommendationResult(r.RecommendedItemId, r.Score)));
+                return Ok(recommendations.Select(r => {
+                        Item item = RetrieveItemByItemId(r.RecommendedItemId);
+                        item.RecommendationScore = r.Score;
+                        return item;
+                    }));
             }
             catch (ModelNotFoundException exception)
             {
@@ -177,7 +183,7 @@ namespace Recommendations.WebApp.Controllers
             }
         }
 
-        public Item SomeMethod(string itemId)
+        public Item RetrieveItemByItemId(string itemId)
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
 
@@ -185,6 +191,7 @@ namespace Recommendations.WebApp.Controllers
             builder.UserID = "mindshopper";
             builder.Password = "8799LipYAA9oksRLG6ia";
             builder.InitialCatalog = "recommender";
+            Item item = null; ;
 
 
             try
@@ -204,8 +211,7 @@ namespace Recommendations.WebApp.Controllers
                         {
                             while (reader.Read())
                             {
-                                Item item = new Item(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetDecimal(4), reader.GetInt32(5));
-                                Console.WriteLine(item.ToString());
+                                item = new Item(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetDecimal(4), reader.GetInt32(5));
                             }
                         }
                     }
@@ -216,7 +222,8 @@ namespace Recommendations.WebApp.Controllers
                 Console.WriteLine(e.ToString());
             }
             Console.WriteLine("\nDone. Press enter.");
-            Console.ReadLine();
+            
+            return item;
         }
 
         private const int MinRecommendationCount = 1;
