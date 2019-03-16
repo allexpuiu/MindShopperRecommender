@@ -34,13 +34,31 @@ namespace Recommendations.WebApp.Controllers
         /// <param name="recommendationCount">The number of requested recommendations</param>
         [Route("api/models/default/recommend", Name = "GetItemRecommendationsFromDefaultModel")]
         [HttpGet]
-        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<RecommendationResult>)), SwaggerResponseRemoveDefaults]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
         public Task<IHttpActionResult> GetItemRecommendationsFromDefaultModel(CancellationToken cancellationToken,
             string itemId, int recommendationCount = DefaultRecommendationCount)
         {
             // get recommendations for a single item
             UsageEvent[] usageEvents = {new UsageEvent {ItemId = itemId}};
             return GetRecommendationsAsync(null, usageEvents, null, recommendationCount, cancellationToken);
+        }
+
+
+        /// <summary>
+        /// Get recommendations using the default model
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token assigned for the operation.</param>
+        /// <param name="categoryCode">Item id to get recommendations for</param>
+        /// <param name="recommendationCount">The number of requested recommendations</param>
+        [Route("api/topsellers", Name = "GetItemRecommendationsFromDefaultModel")]
+        [HttpGet]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
+        public Task<IHttpActionResult> GetTopSellers(CancellationToken cancellationToken,
+            string categoryCode, int recommendationCount = DefaultRecommendationCount)
+        {
+            // get recommendations for a single item
+            
+            return GetTopSellersAsync(categoryCode, cancellationToken);
         }
 
         /// <summary>
@@ -52,7 +70,7 @@ namespace Recommendations.WebApp.Controllers
         /// <param name="recommendationCount">The number of requested recommendations</param>
         [Route("api/models/{modelId}/recommend", Name = nameof(GetItemRecommendations))]
         [HttpGet]
-        [SwaggerResponse(HttpStatusCode.OK, Type = typeof (IEnumerable<RecommendationResult>)), SwaggerResponseRemoveDefaults]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof (IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
         public async Task<IHttpActionResult> GetItemRecommendations(CancellationToken cancellationToken,
             [FromUri] Guid? modelId, string itemId, int recommendationCount = DefaultRecommendationCount)
         {
@@ -77,7 +95,7 @@ namespace Recommendations.WebApp.Controllers
         /// <param name="recommendationCount">The number of requested recommendations</param>
         [Route("api/models/default/recommend", Name = nameof(GetPersonalizedRecommendationsFromDefaultModel))]
         [HttpPost]
-        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<RecommendationResult>)), SwaggerResponseRemoveDefaults]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
         public Task<IHttpActionResult> GetPersonalizedRecommendationsFromDefaultModel(CancellationToken cancellationToken,
             [FromBody]IList<UsageEvent> usageEvents, string userId = null, int recommendationCount = DefaultRecommendationCount)
         {
@@ -95,7 +113,7 @@ namespace Recommendations.WebApp.Controllers
         /// <param name="recommendationCount">The number of requested recommendations</param>
         [Route("api/models/{modelId}/recommend", Name = nameof(GetPersonalizedRecommendations))]
         [HttpPost]
-        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<RecommendationResult>)), SwaggerResponseRemoveDefaults]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
         public async Task<IHttpActionResult> GetPersonalizedRecommendations(
             CancellationToken cancellationToken,
             [FromUri] Guid? modelId, 
@@ -183,7 +201,21 @@ namespace Recommendations.WebApp.Controllers
             }
         }
 
-        public Item RetrieveItemByItemId(string itemId)
+        private async Task<IHttpActionResult> GetTopSellersAsync(string categoryCode, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // convert the result and return
+                return Ok(RetrieveTopSellersByCategoryCode(categoryCode));
+            }
+            catch (ModelNotFoundException exception)
+            {
+                Trace.TraceWarning($"{nameof(ModelNotFoundException)} while getting recommendations: {exception}");
+                return NotFound();
+            }
+        }
+
+        private Item RetrieveItemByItemId(string itemId)
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
 
@@ -203,6 +235,7 @@ namespace Recommendations.WebApp.Controllers
                     sb.Append("SELECT ItemId, ItemName, CategoryCode, Category, SalesValue, ItemRank ");
                     sb.Append("FROM [dim].[Item]");
                     sb.Append($"WHERE ItemId = {itemId}");
+                    sb.Append("ORDER BY ItemRank ASC");
                     String sql = sb.ToString();
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
@@ -221,8 +254,50 @@ namespace Recommendations.WebApp.Controllers
             {
                 Console.WriteLine(e.ToString());
             }
-            Console.WriteLine("\nDone. Press enter.");
-            
+
+            return item;
+        }
+
+
+        private Item RetrieveTopSellersByCategoryCode(string categoryCode)
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
+
+            builder.DataSource = "mindshopper.database.windows.net";
+            builder.UserID = "mindshopper";
+            builder.Password = "8799LipYAA9oksRLG6ia";
+            builder.InitialCatalog = "recommender";
+            Item item = null; ;
+
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(builder.ConnectionString))
+                {
+                    connection.Open();
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("SELECT ItemId, ItemName, CategoryCode, Category, SalesValue, ItemRank ");
+                    sb.Append("FROM [dim].[Item]");
+                    sb.Append($"WHERE CategoryCode = {categoryCode}");
+                    String sql = sb.ToString();
+
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    {
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                item = new Item(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetDecimal(4), reader.GetInt32(5));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
             return item;
         }
 
