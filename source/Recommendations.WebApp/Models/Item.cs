@@ -31,4 +31,5 @@ namespace Recommendations.WebApp.Models
             return $"ItemId: {ItemId}\nItemName: {ItemName}\nCategoryCode: {CategoryCode}\nCategory: {Category}\nSalesValue: {SalesValue}\nItemRank: {ItemRank}\nRecommendationScore: {RecommendationScore}";
         }
     }
+
 }
