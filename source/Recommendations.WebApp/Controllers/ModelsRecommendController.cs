@@ -62,6 +62,23 @@ namespace Recommendations.WebApp.Controllers
         }
 
         /// <summary>
+        /// Get recommendations using the default model
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token assigned for the operation.</param>
+        /// <param name="itemId">Item id to get recommendations for</param>
+        /// <param name="recommendationCount">The number of requested recommendations</param>
+        [Route("api/item", Name = "GetItemAsync")]
+        [HttpGet]
+        [SwaggerResponse(HttpStatusCode.OK, Type = typeof(IEnumerable<Item>)), SwaggerResponseRemoveDefaults]
+        public Task<IHttpActionResult> GetItemAsync(CancellationToken cancellationToken,
+            string itemId, int recommendationCount = DefaultRecommendationCount)
+        {
+            // get recommendations for a single item
+
+            return GetItemAsync(itemId, cancellationToken);
+        }
+
+        /// <summary>
         /// Get recommendations using the requested model
         /// </summary>
         /// <param name="cancellationToken">The cancellation token assigned for the operation.</param>
@@ -207,6 +224,20 @@ namespace Recommendations.WebApp.Controllers
             {
                 // convert the result and return
                 return Ok(RetrieveTopSellersByCategoryCode(categoryCode));
+            }
+            catch (ModelNotFoundException exception)
+            {
+                Trace.TraceWarning($"{nameof(ModelNotFoundException)} while getting recommendations: {exception}");
+                return NotFound();
+            }
+        }
+
+        private async Task<IHttpActionResult> GetItemAsync(string itemId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // convert the result and return
+                return Ok(RetrieveItemByItemId(itemId));
             }
             catch (ModelNotFoundException exception)
             {
